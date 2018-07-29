@@ -1,13 +1,10 @@
 var sfx, music;
-var alien1, alien2, alien3, alien12, alien22, alien32, ufo, block, block1, block2, block3;
 var row1 = 11; //number of aliens in row one
 var row2 = 33; //number of aliens in row 2 and 3
 var row3 = 55; //number of aliens in row 4 and 5
 var velocity = 0;
 var c, ctx, ship, bullet;
 var left = right = false;
-var ammo = true;
-var shoot = false;
 var modifier = 35;
 var yMod = 75;
 var xMod = 50;
@@ -25,29 +22,54 @@ var ufoMove = false;
 var ufoShot = false;
 var intro = true;
 var l;
+
+function textureConstruct(url) {
+    let img = new Image();
+    img.src = url;
+    img.addEventListener("load", manage);
+    return img;
+}
+
+function manage() {
+    images.loaded++;
+}
+
+var images = {
+    loaded: 0,
+    total: 13,
+    alien1: new textureConstruct("img/alien1.png"),
+    alien2: new textureConstruct("img/alien2.png"),
+    alien3: new textureConstruct("img/alien3.png"),
+    alien12: new textureConstruct("img/alien1-2.png"),
+    alien22: new textureConstruct("img/alien2-2.png"),
+    alien32: new textureConstruct("img/alien3-2.png"),
+    ship: new textureConstruct("img/ship.png"),
+    ufo: new textureConstruct("img/ufo.png"),
+    block: new textureConstruct("img/block.png"),
+    block1: new textureConstruct("img/block1.png"),
+    block2: new textureConstruct("img/block2.png"),
+    block3: new textureConstruct("img/block3.png"),
+    death: new textureConstruct("img/death.png")
+}
+document.body.addEventListener("keydown", keyDown);
+document.body.addEventListener("keyup", keyUp);
+
 window.onload = function() {
     c = document.getElementById("canvas");
     ctx = c.getContext("2d");
-    alien1 = document.getElementById("alien1");
-    alien2 = document.getElementById("alien2");
-    alien3 = document.getElementById("alien3");
-    alien12 = document.getElementById("alien1-2");
-    alien22 = document.getElementById("alien2-2");
-    alien32 = document.getElementById("alien3-2");
     music = document.querySelectorAll(".music");
     sfx = document.querySelectorAll(".sfx");
-    document.body.addEventListener("keydown", keyDown);
-    document.body.addEventListener("keyup", keyUp);
-    setInterval(update, 1000 / 60);
     ship = {
-        image: document.getElementById("shipImage"),
+        image: images.ship,
         x: c.width / 2 - 25,
         y: c.height - 30, //static
         width: 52,
-        height: 32
+        height: 32,
+        ammo: true,
+        shoot: false
     }
     bullet = {
-        speed: -6,
+        speed: -8,
         width: 2,
         height: 10,
         x: ship.x,
@@ -68,7 +90,7 @@ window.onload = function() {
             yMod = 75;
         }
         block.push({
-            image: document.getElementById("block"),
+            image: images.block,
             x: xMod,
             y: c.height - yMod,
             width: 50 / 4,
@@ -84,7 +106,7 @@ window.onload = function() {
         }
 
         aliens.push({
-            image: document.getElementById("alien1"),
+            image: images.alien1,
             imgState: 1,
             speed: .08,
             x: modifier,
@@ -97,7 +119,7 @@ window.onload = function() {
         modifier += 40;
     }
     ufo = {
-        image: document.getElementById("ufo"),
+        image: images.ufo,
         speed: 1,
         time: 6000,
         x: 500,
@@ -108,22 +130,27 @@ window.onload = function() {
     changeTime();
     playMusic();
     makelasers();
+    setInterval(update, 1000 / 60); //change to RAF
 }
 
-function laser(x, y, width, height, speed, color) { //alien laser constructor.
+function laserConstruct(x, y, width, height, speed) { //alien laser constructor.
     this.x = x;
     this.y = y;
     this.width = width;
     this.height = height;
     this.speed = speed;
-    this.color = color;
+    this.color = "white";
+    this.draw = function () {
+        ctx.fillStyle = this.color;
+        ctx.fillRect(this.x, this.y, this.width, this.height, this.speed);
+    }
 }
 
 function keyDown(e) {
     switch (e.keyCode) {
         case 32:
-            shoot = true;
-            if (ammo && gameOver == false) {
+            ship.shoot = true;
+            if (ship.ammo && gameOver == false) {
                 sfx[2].currentTime = 0;
                 sfx[2].play();
             }
@@ -178,20 +205,20 @@ function update() {
         }
 
         for (var i = 0; i < block.length; i++) { //score hits on blocks
-            if (shoot == true && bullet.x + bullet.width >= block[i].x &&
+            if (ship.shoot == true && bullet.x + bullet.width >= block[i].x &&
                 bullet.x <= block[i].x + block[i].width &&
                 bullet.y < block[i].y + block[i].height) {
                 block[i].hits++;
                 reset();
             }
             if (block[i].hits == 1) {
-                block[i].image = document.getElementById("block1");
+                block[i].image = images.block1;
             }
             if (block[i].hits == 2) {
-                block[i].image = document.getElementById("block2");
+                block[i].image = images.block2;
             }
             if (block[i].hits == 3) {
-                block[i].image = document.getElementById("block3");
+                block[i].image = images.block3;
             }
             if (block[i].hits >= 4) {
                 block.splice(i, 1);
@@ -215,7 +242,7 @@ function update() {
             }
         }
 
-        if (shoot == true && bullet.x + bullet.width >= ufo.x &&
+        if (ship.shoot == true && bullet.x + bullet.width >= ufo.x &&
             bullet.x <= ufo.x + ufo.width &&
             bullet.y < ufo.y + ufo.height && bullet.y > ufo.y) {
             sfx[4].currentTime = 0;
@@ -237,7 +264,7 @@ function update() {
             if ((lasers[i].y + lasers[i].height) > canvas.height) {
                 lasers.splice(i, 1);
             }
-            if (lasers[i].x > ship.x && (lasers[i].x + lasers[i].width) < (ship.x + ship.width) &&
+            else if (lasers[i].x > ship.x && (lasers[i].x + lasers[i].width) < (ship.x + ship.width) &&
                 (lasers[i].y + lasers[i].height) > ship.y && (lasers[i].y + lasers[i].height) < ship.y + ship.height) {
                 lasers.splice(i, 1);
                 lives--;
@@ -275,7 +302,7 @@ function update() {
                 gameOver = true;
             }
 
-            if (shoot == true && bullet.x + bullet.width >= aliens[i].x &&
+            if (ship.shoot == true && bullet.x + bullet.width >= aliens[i].x &&
                 bullet.x <= aliens[i].x + aliens[i].width &&
                 bullet.y < aliens[i].y + aliens[i].height && bullet.y > aliens[i].y) { // did an alien get hit?
                 aliens[i].hits++;
@@ -327,7 +354,7 @@ function update() {
                 }
 
                 aliens.push({
-                    image: document.getElementById("alien1"),
+                    image: images.alien1,
                     imgState: 1,
                     speed: .08,
                     x: modifier,
@@ -344,21 +371,21 @@ function update() {
             }
         }
 
-        if (shoot == true) { //can we shoot?
-            if (ammo == true) { //where bullet spawns
+        if (ship.shoot == true) { //can we ship.shoot?
+            if (ship.ammo == true) { //where bullet spawns
                 bullet.x = ship.x + ship.width / 2;
                 bullet.y = ship.y;
-                ammo = false;
+                ship.ammo = false;
             }
-            bullet.y += bullet.speed; //shoot bullet
+            bullet.y += bullet.speed; //ship.shoot bullet
         }
         render();
     }
 }
 
-function reset() { //reset ammo and shoot state
-    shoot = false;
-    ammo = true;
+function reset() { //reset ship.ammo and ship.shoot state
+    ship.shoot = false;
+    ship.ammo = true;
     bullet.y = ship.y;
 }
 
@@ -382,7 +409,7 @@ function makelasers() {
                 l = aliens.length - 1;
                 var x = Math.floor(Math.random() * ((highX) - aliens[0].x + 1)) + aliens[0].x;
                 var y = Math.floor(Math.random() * (aliens[0].y - highY + 1)) + highY;
-                var laser = new laser(x, y, 4, 20, 3, 'white'); // speed is 5
+                var laser = new laserConstruct(x, y, 4, 20, 3); // speed is 5
                 lasers.push(laser);
             }
             makelasers();
@@ -441,7 +468,7 @@ function animate() {
 }
 
 function death(i) {
-    aliens[i].image = document.getElementById("death");
+    aliens[i].image = images.death;
     aliens[i].width = 26;
     aliens[i].height = 16;
 }
@@ -466,7 +493,7 @@ function render() {
     for (var i = 0; i < block.length; i++) {
         ctx.drawImage(block[i].image, block[i].x, block[i].y, block[i].width, block[i].height);
     }
-    if (shoot) {
+    if (ship.shoot) {
         ctx.fillRect(bullet.x, bullet.y, bullet.width, bullet.height);
     }
 
@@ -481,9 +508,9 @@ function render() {
                 if (aliens[i].hits >= 1) {
                     death(i);
                 } else if (aliens[i].imgState == 1) {
-                    aliens[i].image = document.getElementById("alien1");
+                    aliens[i].image = images.alien1;
                 } else if (aliens[i].imgState == 2) {
-                    aliens[i].image = document.getElementById("alien1-2");
+                    aliens[i].image = images.alien12;
                 }
                 ctx.drawImage(aliens[i].image, aliens[i].x, aliens[i].y, aliens[i].width, aliens[i].height);
             }
@@ -491,9 +518,9 @@ function render() {
                 if (aliens[i].hits >= 1) {
                     death(i);
                 } else if (aliens[i].imgState == 1) {
-                    aliens[i].image = document.getElementById("alien2");
+                    aliens[i].image = images.alien2;
                 } else if (aliens[i].imgState == 2) {
-                    aliens[i].image = document.getElementById("alien2-2");
+                    aliens[i].image = images.alien22;
                 }
                 aliens[i].width = 24;
                 aliens[i].height = 17;
@@ -503,9 +530,9 @@ function render() {
                 if (aliens[i].hits >= 1) {
                     death(i);
                 } else if (aliens[i].imgState == 1) {
-                    aliens[i].image = document.getElementById("alien3");
+                    aliens[i].image = images.alien3;
                 } else if (aliens[i].imgState == 2) {
-                    aliens[i].image = document.getElementById("alien3-2");
+                    aliens[i].image = images.alien32;
                 }
                 aliens[i].width = 24;
                 aliens[i].height = 16;
@@ -520,9 +547,4 @@ function render() {
         ctx.font = "30px Verdana";
         ctx.fillText("GAME OVER", c.width / 3, c.height / 2);
     }
-}
-
-laser.prototype.draw = function() {
-    ctx.fillStyle = this.color;
-    ctx.fillRect(this.x, this.y, this.width, this.height, this.speed, this.color);
 }
