@@ -1,4 +1,3 @@
-var sfx, music;
 var row1 = 11; //number of aliens in row one
 var row2 = 33; //number of aliens in row 2 and 3
 var row3 = 55; //number of aliens in row 4 and 5
@@ -22,43 +21,82 @@ var ufoMove = false;
 var ufoShot = false;
 var intro = true;
 var l;
+var objects_loaded = 0,
+    objects_total = 2; //images and audio
+var c = document.getElementById("canvas"),
+    ctx = c.getContext("2d");
 
-function textureConstruct(url) {
+
+function textureConstruct(url,parent) {
     let img = new Image();
     img.src = url;
-    img.addEventListener("load", manage);
+    img.addEventListener("load", manage(parent));
     return img;
 }
 
-function manage() {
-    images.loaded++;
+function audioConstruct(url,parent) {
+    let aud = new Audio(url);
+    aud.addEventListener("load", manage(parent));
+    return aud;
 }
 
-var images = {
-    loaded: 0,
-    total: 13,
-    alien1: new textureConstruct("img/alien1.png"),
-    alien2: new textureConstruct("img/alien2.png"),
-    alien3: new textureConstruct("img/alien3.png"),
-    alien12: new textureConstruct("img/alien1-2.png"),
-    alien22: new textureConstruct("img/alien2-2.png"),
-    alien32: new textureConstruct("img/alien3-2.png"),
-    ship: new textureConstruct("img/ship.png"),
-    ufo: new textureConstruct("img/ufo.png"),
-    block: new textureConstruct("img/block.png"),
-    block1: new textureConstruct("img/block1.png"),
-    block2: new textureConstruct("img/block2.png"),
-    block3: new textureConstruct("img/block3.png"),
-    death: new textureConstruct("img/death.png")
+function manage(parent) {
+    parent.loaded++;
+    if (parent.loaded == parent.total) {
+        objects_loaded++;
+    }
+    if (objects_loaded == objects_total) {
+        setup();
+    }
 }
+
+function imageConstruct() {
+    this.complete = false;
+    this.counted = false;
+    this.loaded = 0;
+    this.total= 12;
+    this.alien1= new textureConstruct("img/alien1.png",this);
+    this.alien2= new textureConstruct("img/alien2.png",this);
+    this.alien3= new textureConstruct("img/alien3.png",this);
+    this.alien12= new textureConstruct("img/alien1-2.png",this);
+    this.alien22= new textureConstruct("img/alien2-2.png",this);
+    this.alien32= new textureConstruct("img/alien3-2.png",this);
+    this.ship= new textureConstruct("img/ship.png",this);
+    this.ufo= new textureConstruct("img/ufo.png",this);
+    this.block= new textureConstruct("img/block.png",this);
+    this.block1= new textureConstruct("img/block1.png",this);
+    this.block2= new textureConstruct("img/block2.png",this);
+    this.block3= new textureConstruct("img/block3.png",this);
+    this.death= new textureConstruct("img/death.png",this);
+}
+var images = new imageConstruct();
+
+function audioContainerConstructor() {
+    this.complete = false;
+    this.counted = false;
+    this.loaded = 0;
+    this.total = 9;
+    this.beat = {
+        a: new audioConstruct("audio/beat1.wav",this),
+        b: new audioConstruct("audio/beat2.wav",this),
+        c: new audioConstruct("audio/beat3.wav",this),
+        d: new audioConstruct("audio/beat4.wav",this)
+    },
+    this.sfx = {
+        ship_explode: new audioConstruct("audio/ship_explode.wav",this),
+        invader_die: new audioConstruct("audio/invader_die.wav",this),
+        shoot: new audioConstruct("audio/shoot.wav",this),
+        ufo_intro: new audioConstruct("audio/ufoIntro.wav",this),
+        ufo_loop: new audioConstruct("audio/ufoLoop.wav",this)
+
+    }
+};
+var audio = new audioContainerConstructor();
+
 document.body.addEventListener("keydown", keyDown);
 document.body.addEventListener("keyup", keyUp);
 
-window.onload = function() {
-    c = document.getElementById("canvas");
-    ctx = c.getContext("2d");
-    music = document.querySelectorAll(".music");
-    sfx = document.querySelectorAll(".sfx");
+function setup() {
     ship = {
         image: images.ship,
         x: c.width / 2 - 25,
@@ -69,7 +107,7 @@ window.onload = function() {
         shoot: false
     }
     bullet = {
-        speed: -8,
+        speed: -15,
         width: 2,
         height: 10,
         x: ship.x,
@@ -151,8 +189,8 @@ function keyDown(e) {
         case 32:
             ship.shoot = true;
             if (ship.ammo && gameOver == false) {
-                sfx[2].currentTime = 0;
-                sfx[2].play();
+                audio.sfx.shoot.currentTime = 0;
+                audio.sfx.shoot.play();
             }
             break;
         case 37:
@@ -228,24 +266,24 @@ function update() {
         if (ufoMove == true) {
             ufo.x += -ufo.speed; //move the ship
             if (intro) {
-                sfx[3].currentTime = 0;
-                sfx[3].play();
+                audio.sfx.ufo_intro.currentTime = 0;
+                audio.sfx.ufo_intro.play();
             }
             if (ufo.x + ufo.width <= 0) {
                 ufo.x = 500;
                 ufoMove = false;
                 intro = true;
             }
-            if (sfx[3].currentTime = 1) {
+            if (audio.sfx.ufo_intro.currentTime = 1) {
                 intro = false;
-                sfx[4].play();
+                audio.sfx.ufo_loop.play();
             }
         }
 
         if (ship.shoot == true && bullet.x + bullet.width >= ufo.x &&
             bullet.x <= ufo.x + ufo.width &&
             bullet.y < ufo.y + ufo.height && bullet.y > ufo.y) {
-            sfx[4].currentTime = 0;
+            audio.sfx.ufo_loop.currentTime = 0;
             reset();
             ufoMove = false;
             ufoShot = true;
@@ -268,7 +306,7 @@ function update() {
                 (lasers[i].y + lasers[i].height) > ship.y && (lasers[i].y + lasers[i].height) < ship.y + ship.height) {
                 lasers.splice(i, 1);
                 lives--;
-                sfx[0].play();
+                audio.sfx.ship_explode.play();
             }
             for (var j = 0; j < block.length; j++) {
                 if (lasers[i].x + lasers[i].width >= block[j].x &&
@@ -306,7 +344,7 @@ function update() {
                 bullet.x <= aliens[i].x + aliens[i].width &&
                 bullet.y < aliens[i].y + aliens[i].height && bullet.y > aliens[i].y) { // did an alien get hit?
                 aliens[i].hits++;
-                sfx[1].play();
+                audio.sfx.invader_die.play();
                 reset();
                 (function(i) {
                     setTimeout(function() {
@@ -327,11 +365,11 @@ function update() {
 
                         if (aliens[i].speed < 0) { //if (-) speed, then increase (-) speed
                             for (var j = 0; j < aliens.length; j++) {
-                                aliens[j].speed += -.005 * aliens[j].speedModifier;
+                                aliens[j].speed += -.02 * aliens[j].speedModifier;
                             }
                         } else { //if (+) speed, then increase (+) speed
                             for (var j = 0; j < aliens.length; j++) {
-                                aliens[j].speed += .005 * aliens[j].speedModifier;
+                                aliens[j].speed += .02 * aliens[j].speedModifier;
                             }
                         }
                     }, 100);
@@ -371,19 +409,19 @@ function update() {
             }
         }
 
-        if (ship.shoot == true) { //can we ship.shoot?
+        if (ship.shoot == true) { //can we shoot?
             if (ship.ammo == true) { //where bullet spawns
                 bullet.x = ship.x + ship.width / 2;
                 bullet.y = ship.y;
                 ship.ammo = false;
             }
-            bullet.y += bullet.speed; //ship.shoot bullet
+            bullet.y += bullet.speed; //shoot bullet
         }
         render();
     }
 }
 
-function reset() { //reset ship.ammo and ship.shoot state
+function reset() { //reset ship.ammo and shoot state
     ship.shoot = false;
     ship.ammo = true;
     bullet.y = ship.y;
@@ -435,22 +473,22 @@ function playMusic() {
         }
         time = (1000 - (speed * 500));
         setTimeout(function() {
-            music[0].play();
+            audio.beat.a.play();
             animate();
         }, time);
         setTimeout(function() {
-            music[1].play();
+            audio.beat.b.play();
             animate();
-        }, time + time);
+        }, time*2);
         setTimeout(function() {
-            music[2].play();
+            audio.beat.c.play();
             animate();
-        }, time + time + time);
+        }, time*3);
         setTimeout(function() {
-            music[3].play();
+            audio.beat.d.play();
             animate();
             playMusic();
-        }, time + time + time + time);
+        }, time*4);
     }
 }
 

@@ -1,6 +1,6 @@
-#Space Invaders HTML 5 Clone
+# Space Invaders HTML 5 Clone
 
-###I am aiming to make this the most faithful online reproduction of the classic arcade game: Space Invaders.
+### I am aiming to make this the most faithful online reproduction of the classic arcade game: Space Invaders.
 I loved playing it at my local arcade, so I decided to build one in JavaScript as practice before I start to
 make even bigger games.
 
