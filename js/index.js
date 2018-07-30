@@ -94,24 +94,31 @@ var audio = new audioContainerConstructor();
 document.body.addEventListener("keydown", keyDown);
 document.body.addEventListener("keyup", keyUp);
 
+function shipConstruct() {
+    this.image = images.ship;
+    this.x = c.width / 2 - 25;
+    this.y = c.height - 30; //static
+    this.width = 52;
+    this.height = 32;
+    this.velocity = 0;
+    this.ammo = true;
+    this.shoot = false;
+}
+
+function bulletConstruct() {    
+    this.speed = -400
+    this.width = 2
+    this.height = 10
+    this.x = ship.x
+    this.y = ship.y
+}
+
+var ship, bullet;
+
 function setup() {
-    ship = {
-        image: images.ship,
-        x: c.width / 2 - 25,
-        y: c.height - 30, //static
-        width: 52,
-        height: 32,
-        velocity: 0,
-        ammo: true,
-        shoot: false
-    }
-    bullet = {
-        speed: -400,
-        width: 2,
-        height: 10,
-        x: ship.x,
-        y: ship.y
-    }
+    ship = new shipConstruct();    
+    bullet = new bulletConstruct();
+    
     for (var i = 0; i < 40; i++) {
         if (i == 3 || i == 5 || i == 7 || i == 13 || i == 15 || i == 17 || i == 23 || i == 25 || i == 27 || i == 33 || i == 35 || i == 37) {
             xMod += 12.5;
